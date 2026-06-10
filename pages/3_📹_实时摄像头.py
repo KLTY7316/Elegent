@@ -20,6 +20,9 @@ st.set_page_config(
     layout="wide",
 )
 
+from utils.styles import inject_common_styles
+inject_common_styles()
+
 st.markdown('<h1 class="main-header">📹 实时摄像头检测</h1>', unsafe_allow_html=True)
 st.markdown("---")
 st.caption("接入摄像头，实时检测施工现场安全帽佩戴情况")

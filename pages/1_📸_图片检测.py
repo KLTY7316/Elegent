@@ -21,6 +21,9 @@ st.set_page_config(
     layout="wide",
 )
 
+from utils.styles import inject_common_styles
+inject_common_styles()
+
 st.markdown('<h1 class="main-header">📸 图片检测</h1>', unsafe_allow_html=True)
 st.markdown("---")
 st.caption("上传施工现场图片，AI 自动识别安全帽佩戴情况")

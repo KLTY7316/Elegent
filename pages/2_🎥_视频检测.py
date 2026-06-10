@@ -20,6 +20,9 @@ st.set_page_config(
     layout="wide",
 )
 
+from utils.styles import inject_common_styles
+inject_common_styles()
+
 st.markdown('<h1 class="main-header">🎥 视频检测</h1>', unsafe_allow_html=True)
 st.markdown("---")
 st.caption("上传施工监控视频，逐帧分析安全帽佩戴情况")

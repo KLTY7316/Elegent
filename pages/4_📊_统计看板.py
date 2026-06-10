@@ -20,6 +20,9 @@ st.set_page_config(
     layout="wide",
 )
 
+from utils.styles import inject_common_styles
+inject_common_styles()
+
 st.markdown('<h1 class="main-header">📊 统计看板</h1>', unsafe_allow_html=True)
 st.markdown("---")
 st.caption("实时监控数据可视化，全面掌握安全帽佩戴情况")

@@ -18,6 +18,9 @@ st.set_page_config(
     layout="wide",
 )
 
+from utils.styles import inject_common_styles
+inject_common_styles()
+
 st.markdown('<h1 class="main-header">📁 历史记录</h1>', unsafe_allow_html=True)
 st.markdown("---")
 st.caption("浏览违规截图与检测历史记录")

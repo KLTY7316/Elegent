@@ -18,6 +18,9 @@ st.set_page_config(
     layout="wide",
 )
 
+from utils.styles import inject_common_styles
+inject_common_styles()
+
 st.markdown('<h1 class="main-header">🤖 AI 安全分析报告</h1>', unsafe_allow_html=True)
 st.markdown("---")
 st.caption("基于 LLM 大语言模型，自动生成安全帽佩戴情况分析报告")
