@@ -1,13 +1,11 @@
 """
-AI 报告页面 — 模拟 LLM 生成安全分析报告
+AI 报告页面 —— 集成 C 的 llm_report.py，调用真实 LLM 生成报告
 """
 import streamlit as st
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils.fake_data import fake_generate_report, fake_get_statistics, fake_detect
-import numpy as np
 
 # ============================================================
 # 页面配置
@@ -23,7 +21,7 @@ inject_common_styles()
 
 st.markdown('<h1 class="main-header">🤖 AI 安全分析报告</h1>', unsafe_allow_html=True)
 st.markdown("---")
-st.caption("基于 LLM 大语言模型，自动生成安全帽佩戴情况分析报告")
+st.caption("基于 LLM 大语言模型（Ollama qwen:4b），自动生成安全帽佩戴情况分析报告")
 
 # ============================================================
 # 控制面板
@@ -45,8 +43,29 @@ with col_ctrl:
         index=0,
     )
 
-    include_suggestions = st.toggle("包含改进建议", value=True)
-    include_charts = st.toggle("包含图表描述", value=True)
+    # 从 session_state 获取真实检测数据，如果没有则使用默认
+    if "detection_history" in st.session_state and st.session_state.detection_history:
+        latest_stats = st.session_state.detection_history[-1]
+        st.success(f"✅ 已加载最新检测数据（{latest_stats.get('timestamp', '未知时间')}）")
+    else:
+        st.warning("⚠️ 暂无检测数据，将使用示例数据生成报告")
+        latest_stats = {
+            'total_persons': 12,
+            'helmet_count': 10,
+            'head_count': 2,
+            'violation_rate': 0.167,
+            'timestamp': '2026-06-10 10:00:00'
+        }
+
+    # llm_report 需要的字段映射
+    stats_for_llm = {
+        'total_workers': latest_stats.get('total_persons', 0),
+        'helmet_count': latest_stats.get('helmet_count', 0),
+        'head_count': latest_stats.get('no_helmet_count', latest_stats.get('head_count', 0)),
+        'violation_rate': latest_stats.get('violation_rate', 0) / 100.0
+        if latest_stats.get('violation_rate', 0) > 1
+        else latest_stats.get('violation_rate', 0),
+    }
 
     generate_btn = st.button("🤖 生成 AI 报告", type="primary", key="gen_report")
 
@@ -59,7 +78,8 @@ with col_preview:
     - 💡 改进建议与措施
     - 📈 趋势分析与预测
 
-    **注意**: 当前使用模拟数据，第二周将接入真实 LLM 接口。
+    **技术栈**: Ollama + qwen:4b 本地大模型
+    **服务地址**: http://localhost:11434
     """)
 
 # ============================================================
@@ -67,17 +87,9 @@ with col_preview:
 # ============================================================
 if generate_btn:
     with st.spinner("🤖 AI 正在分析数据并生成报告..."):
-        import time
-        time.sleep(2)  # 模拟生成延迟
+        from utils.llm_report import generate_report
 
-        # 生成假统计数据
-        fake_image = np.zeros((480, 640, 3), dtype=np.uint8)
-        detections = fake_detect(fake_image)
-        stats = fake_get_statistics(detections)
-
-        # 生成报告
-        # TODO: 第二周替换为 from utils.llm_report import generate_report
-        report = fake_generate_report(stats)
+        report = generate_report(stats_for_llm)
 
     # 展示报告
     st.markdown("---")
@@ -85,42 +97,25 @@ if generate_btn:
     st.markdown(report)
 
     # 操作按钮
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         if st.button("💾 保存报告", key="save_report"):
-            # 保存为 markdown
-            report_path = Path("outputs/violations/ai_report.md")
-            report_path.parent.mkdir(parents=True, exist_ok=True)
-            report_path.write_text(report, encoding="utf-8")
-            st.success(f"✅ 报告已保存到: {report_path}")
+            from utils.llm_report import save_report
+            filepath = save_report(report, stats_for_llm)
+            st.success(f"✅ 报告已保存到: {filepath}")
     with col2:
         if st.button("📋 复制报告", key="copy_report"):
             st.code(report, language="markdown")
-    with col3:
-        if st.button("📤 导出 PDF", key="export_pdf"):
-            st.info("📄 PDF 导出功能将在第二周完善")
 
 else:
-    # 默认显示最近报告
+    # 默认显示提示
     st.markdown("---")
-    st.markdown("### 📄 最近报告")
+    st.markdown("### 📄 使用说明")
+    st.markdown("""
+    1. 先在「图片检测」或「视频检测」页面进行检测，数据会自动汇总
+    2. 回到本页面，点击「🤖 生成 AI 报告」按钮
+    3. AI 将基于最新检测数据生成安全分析报告
+    4. 报告可保存为 Markdown 文件或复制到剪贴板
 
-    # 模拟最近报告列表
-    reports = [
-        {"date": "2026-06-06", "type": "日报", "status": "已完成"},
-        {"date": "2026-06-05", "type": "日报", "status": "已完成"},
-        {"date": "2026-06-02", "type": "周报", "status": "已完成"},
-        {"date": "2026-05-30", "type": "日报", "status": "已完成"},
-    ]
-
-    for r in reports:
-        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-        with col1:
-            st.markdown(f"📄 **{r['date']}** — {r['type']}")
-        with col2:
-            st.markdown(f"类型: {r['type']}")
-        with col3:
-            st.markdown(f"状态: ✅ {r['status']}")
-        with col4:
-            st.button("查看", key=f"view_{r['date']}")
-        st.divider()
+    **注意**: 需要本地安装并运行 Ollama（qwen:4b 模型）
+    """)
