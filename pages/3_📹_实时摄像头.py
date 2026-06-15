@@ -9,7 +9,16 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils.fake_data import fake_detect, fake_get_statistics
+
+
+@st.cache_resource
+def load_detector():
+    from utils.detect import detect
+    from utils.get_statistics import get_statistics
+    return detect, get_statistics
+
+
+detect_fn, get_stats_fn = load_detector()
 
 # ============================================================
 # 页面配置
@@ -100,14 +109,16 @@ if st.session_state.camera_running:
 
             # 每 3 帧检测一次
             if frame_count % 3 == 0:
-                detections = fake_detect(frame)
-                stats = fake_get_statistics(detections)
+                detections = detect_fn(frame, conf_threshold=conf_threshold)
+                stats = get_stats_fn(detections)
 
                 # 画检测框
                 for det in detections:
                     x1, y1, x2, y2 = [int(v) for v in det["bbox"]]
                     color = (0, 255, 0) if det["class"] == "helmet" else (0, 0, 255)
-                    label = det["label"] if show_labels else ""
+                    conf = det["confidence"]
+                    label_text = f"Helmet {conf:.0%}" if det["class"] == "helmet" else f"NO Helmet {conf:.0%}"
+                    label = label_text if show_labels else ""
                     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                     if label:
                         cv2.putText(frame, label, (x1, y1 - 5),

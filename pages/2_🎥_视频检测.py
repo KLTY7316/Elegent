@@ -9,7 +9,16 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils.fake_data import fake_detect, fake_get_statistics
+
+
+@st.cache_resource
+def load_detector():
+    from utils.detect import detect
+    from utils.get_statistics import get_statistics
+    return detect, get_statistics
+
+
+detect_fn, get_stats_fn = load_detector()
 
 # ============================================================
 # 页面配置
@@ -104,9 +113,9 @@ if uploaded_file is not None:
                 if frame_count % skip_frames != 0:
                     continue
 
-                # 假数据检测
-                detections = fake_detect(frame)
-                stats = fake_get_statistics(detections)
+                # 真实模型检测
+                detections = detect_fn(frame, conf_threshold=conf_threshold)
+                stats = get_stats_fn(detections)
                 all_stats.append(stats)
 
                 # 画检测框
@@ -114,7 +123,8 @@ if uploaded_file is not None:
                 for det in detections:
                     x1, y1, x2, y2 = [int(v) for v in det["bbox"]]
                     color = (0, 255, 0) if det["class"] == "helmet" else (0, 0, 255)
-                    label = det["label"]
+                    conf = det["confidence"]
+                    label = f"Helmet {conf:.0%}" if det["class"] == "helmet" else f"NO Helmet {conf:.0%}"
                     cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
                     cv2.putText(annotated, label, (x1, y1 - 5),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)

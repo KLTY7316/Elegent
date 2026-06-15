@@ -1,5 +1,5 @@
 """
-图片检测页面 — 上传图片，展示检测结果
+图片检测页面 — 上传图片，展示真实检测结果
 """
 import streamlit as st
 import cv2
@@ -10,7 +10,6 @@ from pathlib import Path
 
 # 确保可以导入 utils
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils.fake_data import fake_detect, fake_get_statistics
 
 # ============================================================
 # 页面配置
@@ -23,6 +22,13 @@ st.set_page_config(
 
 from utils.styles import inject_common_styles
 inject_common_styles()
+
+# 懒加载真实模型
+@st.cache_resource
+def load_detector():
+    from utils.detect import detect
+    from utils.get_statistics import get_statistics
+    return detect, get_statistics
 
 st.markdown('<h1 class="main-header">📸 图片检测</h1>', unsafe_allow_html=True)
 st.markdown("---")
@@ -52,7 +58,7 @@ with col_info:
     """)
 
 # ============================================================
-# 检测逻辑
+# 检测逻辑（真实模型）
 # ============================================================
 if uploaded_file is not None:
     # 读取图片
@@ -60,21 +66,22 @@ if uploaded_file is not None:
     image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
     if image is not None:
-        # 用假数据模拟检测
-        # TODO: 第二周替换为 from utils.detect import detect
-        detections = fake_detect(image)
-        stats = fake_get_statistics(detections)
+        with st.spinner("🧠 YOLOv8 正在检测中..."):
+            detect_fn, get_stats_fn = load_detector()
+            detections = detect_fn(image)
+            stats = get_stats_fn(detections)
 
         # 在图片上画检测框
         annotated = image.copy()
         for det in detections:
-            x1, y1, x2, y2 = [int(v) for v in det["bbox"]]
+            x1, y1, x2, y2 = det["bbox"]
+            conf = det["confidence"]
             if det["class"] == "helmet":
                 color = (0, 255, 0)  # 绿色 - 佩戴安全帽
-                label = f"✅ 安全帽 {det['conf']:.0%}"
+                label = f"Helmet {conf:.0%}"
             else:
                 color = (0, 0, 255)  # 红色 - 未佩戴
-                label = f"⚠️ 未佩戴 {det['conf']:.0%}"
+                label = f"NO Helmet {conf:.0%}"
 
             # 画框
             cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
@@ -121,7 +128,7 @@ if uploaded_file is not None:
                     bbox_str = f"({det['bbox'][0]}, {det['bbox'][1]}) → ({det['bbox'][2]}, {det['bbox'][3]})"
                     st.text(f"位置: {bbox_str}")
                 with col3:
-                    st.markdown(f"置信度: **{det['conf']:.1%}**")
+                    st.markdown(f"置信度: **{det['confidence']:.1%}**")
                 st.divider()
 
         # 保存到 session_state（供看板使用）

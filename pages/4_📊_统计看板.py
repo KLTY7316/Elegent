@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils.fake_data import fake_history_data, fake_get_statistics, fake_detect
+from utils.get_statistics import get_statistics
 
 # ============================================================
 # 页面配置
@@ -28,30 +28,64 @@ st.markdown("---")
 st.caption("实时监控数据可视化，全面掌握安全帽佩戴情况")
 
 # ============================================================
+# 读取 session_state 检测历史
+# ============================================================
+history = st.session_state.get("detection_history", [])
+
+if not history:
+    st.warning("暂无检测数据。请先前往「图片检测」或「视频检测」页面进行检测，数据将自动汇总到此处。")
+    st.stop()
+
+# 聚合统计数据
+total_detections = sum(h.get("total_persons", 0) for h in history)
+total_helmet = sum(h.get("helmet_count", 0) for h in history)
+total_no_helmet = sum(h.get("no_helmet_count", 0) for h in history)
+avg_confidence = round(sum(h.get("avg_confidence", 0) for h in history) / max(len(history), 1), 1)
+helmet_rate = round(total_helmet / max(total_detections, 1) * 100, 1)
+
+# ============================================================
 # 顶部统计卡片
 # ============================================================
 st.markdown("### 📈 今日概览")
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-    st.metric("今日检测", "1,284", delta="↑ 12%")
+    st.metric("今日检测", f"{total_detections:,}")
 with col2:
-    st.metric("佩戴人数", "1,247", delta="↑ 8%")
+    st.metric("佩戴人数", f"{total_helmet:,}")
 with col3:
-    st.metric("违规人数", "37", delta="↓ 5%", delta_color="inverse")
+    st.metric("违规人数", f"{total_no_helmet:,}")
 with col4:
-    st.metric("佩戴率", "97.1%", delta="↑ 2.3%")
+    st.metric("佩戴率", f"{helmet_rate}%")
 with col5:
-    st.metric("平均置信度", "94.2%", delta="↑ 1.1%")
+    st.metric("平均置信度", f"{avg_confidence}%")
 
 st.markdown("---")
 
 # ============================================================
 # 图表区域
 # ============================================================
-# 获取假数据
-history = fake_history_data(days=7)
-df = pd.DataFrame(history)
+# 构建 DataFrame（按日期聚合）
+from collections import defaultdict
+agg = defaultdict(lambda: {"total_detections": 0, "violations": 0, "helmet_count": 0})
+for h in history:
+    date = h.get("timestamp", "")[:5]  # mm-dd
+    if not date:
+        continue
+    agg[date]["total_detections"] += h.get("total_persons", 0)
+    agg[date]["violations"] += h.get("no_helmet_count", 0)
+    agg[date]["helmet_count"] += h.get("helmet_count", 0)
+
+history_list = []
+for date in sorted(agg.keys()):
+    d = agg[date]
+    d["date"] = date
+    d["violation_rate"] = round(d["violations"] / max(d["total_detections"], 1) * 100, 1)
+    history_list.append(d)
+
+df = pd.DataFrame(history_list)
+if df.empty:
+    df = pd.DataFrame(columns=["date", "total_detections", "violations", "helmet_count", "violation_rate"])
 
 col_chart1, col_chart2 = st.columns(2)
 
@@ -61,7 +95,7 @@ with col_chart1:
     fig_pie = go.Figure(data=[
         go.Pie(
             labels=["佩戴安全帽", "未佩戴安全帽"],
-            values=[1247, 37],
+            values=[total_helmet, total_no_helmet],
             marker=dict(colors=["#00C853", "#FF1744"]),
             hole=0.6,
             textinfo="percent+label",
@@ -78,12 +112,14 @@ with col_chart1:
     )
     st.plotly_chart(fig_pie, width='stretch')
 
+current_violation_rate = round(total_no_helmet / max(total_detections, 1) * 100, 1)
+
 with col_chart2:
     st.markdown("#### ⚡ 违规率仪表盘")
     # 仪表盘
     fig_gauge = go.Figure(go.Indicator(
         mode="gauge+number",
-        value=2.9,
+        value=current_violation_rate,
         domain={"x": [0, 1], "y": [0, 1]},
         title={"text": "当前违规率 (%)"},
         number={"suffix": "%", "font": {"size": 48}},
