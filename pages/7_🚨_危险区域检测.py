@@ -6,12 +6,13 @@ import cv2
 import numpy as np
 import sys
 from pathlib import Path
+from utils.history_manager import save_violation_screenshot
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 st.set_page_config(
-    page_title="危险区域检测 - 安全帽检测系统",
-    page_icon="🚨",
+    page_title="安全帽检测",
+    page_icon="⛑️",
     layout="wide",
 )
 
@@ -149,6 +150,10 @@ if uploaded_file is not None:
                 # 绘制结果
                 result_img = checker.draw_results(image, results)
 
+                # 违规截图自动保存
+                if results.get('violation_count', 0) > 0:
+                    save_violation_screenshot(result_img, results.get('detections', []), source="危险区域检测")
+
                 col_res, col_stat = st.columns([2, 1])
 
                 with col_res:
@@ -158,8 +163,12 @@ if uploaded_file is not None:
                 with col_stat:
                     st.markdown("#### 📊 区域统计")
                     st.metric("👥 区域内总人数", results['helmet_in_zone'] + results['head_in_zone'])
+                    st.markdown('<div class="metric-safe">', unsafe_allow_html=True)
                     st.metric("✅ 区域内戴安全帽", results['helmet_in_zone'])
-                    st.metric("🚨 区域内违章人数", results['violation_count'], delta_color="inverse")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="metric-violation">', unsafe_allow_html=True)
+                    st.metric("🚨 区域内违章人数", results['violation_count'])
+                    st.markdown('</div>', unsafe_allow_html=True)
                     st.metric("📊 全图安全帽数", results['total_helmet'])
                     st.metric("📊 全图人头数", results['total_head'])
 

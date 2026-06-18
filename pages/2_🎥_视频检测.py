@@ -7,6 +7,7 @@ import numpy as np
 import time
 import sys
 from pathlib import Path
+from utils.history_manager import save_violation_screenshot
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -24,8 +25,8 @@ detect_fn, get_stats_fn = load_detector()
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="视频检测 - 安全帽检测系统",
-    page_icon="🎥",
+    page_title="安全帽检测",
+    page_icon="⛑️",
     layout="wide",
 )
 
@@ -118,6 +119,10 @@ if uploaded_file is not None:
                 stats = get_stats_fn(detections)
                 all_stats.append(stats)
 
+                # 违规截图自动保存（每帧，但通过计数限制频率）
+                if stats["no_helmet_count"] > 0 and processed % max(skip_frames, 3) == 0:
+                    save_violation_screenshot(frame, detections, source="视频检测")
+
                 # 画检测框
                 annotated = frame.copy()
                 for det in detections:
@@ -138,15 +143,19 @@ if uploaded_file is not None:
 
                 # 更新统计
                 with stats_placeholder.container():
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("已处理帧", processed)
-                    with col2:
-                        st.metric("检测人数", stats["total_persons"])
-                    with col3:
-                        st.metric("佩戴安全帽", stats["helmet_count"])
-                    with col4:
-                        st.metric("违规人数", stats["no_helmet_count"])
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("已处理帧", processed)
+                        with col2:
+                            st.markdown('<div class="metric-safe">', unsafe_allow_html=True)
+                            st.metric("佩戴安全帽", stats["helmet_count"])
+                            st.markdown('</div>', unsafe_allow_html=True)
+                        with col3:
+                            st.markdown('<div class="metric-violation">', unsafe_allow_html=True)
+                            st.metric("违规人数", stats["no_helmet_count"])
+                            st.markdown('</div>', unsafe_allow_html=True)
+                        with col4:
+                            st.metric("检测人数", stats["total_persons"])
 
                 processed += 1
                 time.sleep(0.05)  # 控制播放速度

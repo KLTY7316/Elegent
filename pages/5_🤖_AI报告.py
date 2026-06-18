@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="AI 报告 - 安全帽检测系统",
-    page_icon="🤖",
+    page_title="安全帽检测",
+    page_icon="⛑️",
     layout="wide",
 )
 

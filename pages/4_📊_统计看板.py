@@ -15,8 +15,8 @@ from utils.get_statistics import get_statistics
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="统计看板 - 安全帽检测系统",
-    page_icon="📊",
+    page_title="安全帽检测",
+    page_icon="⛑️",
     layout="wide",
 )
 
