@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="AI 报告 - 安全帽检测系统",
-    page_icon="🤖",
+    page_title="安全帽检测 - AI报告",
+    page_icon="⛑️",
     layout="wide",
 )
 
@@ -66,6 +66,27 @@ with col_ctrl:
         if latest_stats.get('violation_rate', 0) > 1
         else latest_stats.get('violation_rate', 0),
     }
+
+    # 风险等级
+    violation_rate_pct = stats_for_llm['violation_rate'] * 100
+    if violation_rate_pct < 10:
+        risk_text = "🟢 低风险"
+        risk_color = "#00C853"
+    elif violation_rate_pct < 20:
+        risk_text = "🟡 中风险"
+        risk_color = "#FF9100"
+    else:
+        risk_text = "🔴 高风险"
+        risk_color = "#FF1744"
+
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        st.metric("👥 检测人数", stats_for_llm['total_workers'])
+        st.metric("✅ 佩戴人数", stats_for_llm['helmet_count'])
+    with col_s2:
+        st.metric("🚨 违规人数", stats_for_llm['head_count'])
+        st.metric("⚠️ 违规率", f"{violation_rate_pct:.1f}%")
+        st.markdown(f"<p style='color:{risk_color};font-size:18px;font-weight:bold;'>{risk_text}</p>", unsafe_allow_html=True)
 
     generate_btn = st.button("🤖 生成 AI 报告", type="primary", key="gen_report")
 

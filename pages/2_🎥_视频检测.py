@@ -24,8 +24,8 @@ detect_fn, get_stats_fn = load_detector()
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="视频检测 - 安全帽检测系统",
-    page_icon="🎥",
+    page_title="安全帽检测 - 视频检测",
+    page_icon="⛑️",
     layout="wide",
 )
 
@@ -82,13 +82,12 @@ if uploaded_file is not None:
         fps = cap.get(cv2.CAP_PROP_FPS)
         duration = total_frames / max(fps, 1)
 
-        col_info1, col_info2, col_info3 = st.columns(3)
+        col_info1, col_info2 = st.columns(2)
         with col_info1:
-            st.metric("总帧数", f"{total_frames:,}")
+            st.metric("🎞️ 总帧数", f"{total_frames:,}")
+            st.metric("⏱️ 视频时长", f"{duration:.1f}s")
         with col_info2:
-            st.metric("帧率", f"{fps:.1f} FPS")
-        with col_info3:
-            st.metric("视频时长", f"{duration:.1f}s")
+            st.metric("🎬 帧率", f"{fps:.1f} FPS")
 
         # 开始检测按钮
         start_btn = st.button("🚀 开始检测", type="primary", key="start_video")
@@ -138,15 +137,13 @@ if uploaded_file is not None:
 
                 # 更新统计
                 with stats_placeholder.container():
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("已处理帧", processed)
-                    with col2:
-                        st.metric("检测人数", stats["total_persons"])
-                    with col3:
-                        st.metric("佩戴安全帽", stats["helmet_count"])
-                    with col4:
-                        st.metric("违规人数", stats["no_helmet_count"])
+                    col_s1, col_s2 = st.columns(2)
+                    with col_s1:
+                        st.metric("🎞️ 已处理帧", processed)
+                        st.metric("👥 总人数", stats["total_persons"])
+                    with col_s2:
+                        st.metric("✅ 佩戴", stats["helmet_count"])
+                        st.metric("🚨 违规", stats["no_helmet_count"])
 
                 processed += 1
                 time.sleep(0.05)  # 控制播放速度
@@ -162,13 +159,23 @@ if uploaded_file is not None:
                 total_violations = sum(s["no_helmet_count"] for s in all_stats)
                 avg_rate = total_violations / max(total_persons, 1) * 100
 
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("总检测人数", total_persons)
-                with col2:
-                    st.metric("总违规次数", total_violations)
-                with col3:
-                    st.metric("平均违规率", f"{avg_rate:.1f}%")
+                col_s1, col_s2 = st.columns(2)
+                with col_s1:
+                    st.metric("👥 总检测人数", total_persons)
+                    st.metric("🚨 总违规次数", total_violations)
+                with col_s2:
+                    violation_rate = avg_rate
+                    if violation_rate < 10:
+                        risk_text = "🟢 低风险"
+                        risk_color = "#00C853"
+                    elif violation_rate < 20:
+                        risk_text = "🟡 中风险"
+                        risk_color = "#FF9100"
+                    else:
+                        risk_text = "🔴 高风险"
+                        risk_color = "#FF1744"
+                    st.metric("⚠️ 平均违规率", f"{avg_rate:.1f}%")
+                    st.markdown(f"<p style='color:{risk_color};font-size:18px;font-weight:bold;'>{risk_text}</p>", unsafe_allow_html=True)
 
 else:
     st.markdown("### 👇 上传视频开始检测")

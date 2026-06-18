@@ -24,8 +24,8 @@ detect_fn, get_stats_fn = load_detector()
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="实时摄像头 - 安全帽检测系统",
-    page_icon="📹",
+    page_title="安全帽检测 - 实时摄像头",
+    page_icon="⛑️",
     layout="wide",
 )
 
@@ -60,15 +60,13 @@ with col_ctrl:
 
 with col_status:
     st.markdown("### 📊 实时状态")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("FPS", "0")
-    with col2:
-        st.metric("检测人数", "0")
-    with col3:
-        st.metric("佩戴安全帽", "0")
-    with col4:
-        st.metric("违规人数", "0")
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        st.metric("🎬 FPS", "0")
+        st.metric("👥 检测人数", "0")
+    with col_s2:
+        st.metric("✅ 佩戴安全帽", "0")
+        st.metric("🚨 违规人数", "0")
 
 # ============================================================
 # 摄像头检测逻辑
@@ -135,15 +133,13 @@ if st.session_state.camera_running:
 
                 # 更新统计
                 with stats_placeholder.container():
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("FPS", f"{fps_display:.1f}")
-                    with col2:
-                        st.metric("检测人数", stats["total_persons"])
-                    with col3:
-                        st.metric("佩戴安全帽", stats["helmet_count"])
-                    with col4:
-                        st.metric("违规人数", stats["no_helmet_count"])
+                    col_s1, col_s2 = st.columns(2)
+                    with col_s1:
+                        st.metric("🎬 FPS", f"{fps_display:.1f}")
+                        st.metric("👥 检测人数", stats["total_persons"])
+                    with col_s2:
+                        st.metric("✅ 佩戴安全帽", stats["helmet_count"])
+                        st.metric("🚨 违规人数", stats["no_helmet_count"])
 
             time.sleep(0.01)
 

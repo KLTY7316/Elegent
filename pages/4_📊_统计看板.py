@@ -15,8 +15,8 @@ from utils.get_statistics import get_statistics
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="统计看板 - 安全帽检测系统",
-    page_icon="📊",
+    page_title="安全帽检测 - 统计看板",
+    page_icon="⛑️",
     layout="wide",
 )
 
@@ -47,18 +47,26 @@ helmet_rate = round(total_helmet / max(total_detections, 1) * 100, 1)
 # 顶部统计卡片
 # ============================================================
 st.markdown("### 📈 今日概览")
-col1, col2, col3, col4, col5 = st.columns(5)
+col_s1, col_s2 = st.columns(2)
 
-with col1:
-    st.metric("今日检测", f"{total_detections:,}")
-with col2:
-    st.metric("佩戴人数", f"{total_helmet:,}")
-with col3:
-    st.metric("违规人数", f"{total_no_helmet:,}")
-with col4:
-    st.metric("佩戴率", f"{helmet_rate}%")
-with col5:
-    st.metric("平均置信度", f"{avg_confidence}%")
+with col_s1:
+    st.metric("📋 今日检测", f"{total_detections:,}")
+    st.metric("✅ 佩戴人数", f"{total_helmet:,}")
+    st.metric("📊 佩戴率", f"{helmet_rate}%")
+with col_s2:
+    st.metric("🚨 违规人数", f"{total_no_helmet:,}")
+    st.metric("🎯 平均置信度", f"{avg_confidence}%")
+    violation_rate = 100 - helmet_rate
+    if violation_rate < 10:
+        risk_text = "🟢 低风险"
+        risk_color = "#00C853"
+    elif violation_rate < 20:
+        risk_text = "🟡 中风险"
+        risk_color = "#FF9100"
+    else:
+        risk_text = "🔴 高风险"
+        risk_color = "#FF1744"
+    st.markdown(f"<p style='color:{risk_color};font-size:18px;font-weight:bold;'>{risk_text}</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 

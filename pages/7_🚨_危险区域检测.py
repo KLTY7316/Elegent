@@ -10,8 +10,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 st.set_page_config(
-    page_title="危险区域检测 - 安全帽检测系统",
-    page_icon="🚨",
+    page_title="安全帽检测 - 危险区域检测",
+    page_icon="⛑️",
     layout="wide",
 )
 
@@ -157,18 +157,31 @@ if uploaded_file is not None:
 
                 with col_stat:
                     st.markdown("#### 📊 区域统计")
-                    st.metric("👥 区域内总人数", results['helmet_in_zone'] + results['head_in_zone'])
-                    st.metric("✅ 区域内戴安全帽", results['helmet_in_zone'])
-                    st.metric("🚨 区域内违章人数", results['violation_count'], delta_color="inverse")
-                    st.metric("📊 全图安全帽数", results['total_helmet'])
-                    st.metric("📊 全图人头数", results['total_head'])
+                    col_s1, col_s2 = st.columns(2)
+                    with col_s1:
+                        st.metric("👥 区域内总人数", results['helmet_in_zone'] + results['head_in_zone'])
+                        st.metric("✅ 区域内戴安全帽", results['helmet_in_zone'])
+                        st.metric("📊 全图安全帽数", results['total_helmet'])
+                    with col_s2:
+                        st.metric("🚨 区域内违章人数", results['violation_count'])
+                        st.metric("📊 全图人头数", results['total_head'])
 
-                    # 违规率
-                    total_in_zone = results['helmet_in_zone'] + results['head_in_zone']
-                    if total_in_zone > 0:
-                        rate = results['violation_count'] / total_in_zone * 100
-                        st.markdown(f"**区域违规率: {rate:.1f}%**")
-                        st.progress(rate / 100.0)
+                        # 违规率 + 风险等级
+                        total_in_zone = results['helmet_in_zone'] + results['head_in_zone']
+                        if total_in_zone > 0:
+                            rate = results['violation_count'] / total_in_zone * 100
+                            st.metric("⚠️ 区域违规率", f"{rate:.1f}%")
+                            if rate < 10:
+                                risk_text = "🟢 低风险"
+                                risk_color = "#00C853"
+                            elif rate < 20:
+                                risk_text = "🟡 中风险"
+                                risk_color = "#FF9100"
+                            else:
+                                risk_text = "🔴 高风险"
+                                risk_color = "#FF1744"
+                            st.markdown(f"<p style='color:{risk_color};font-size:18px;font-weight:bold;'>{risk_text}</p>", unsafe_allow_html=True)
+                            st.progress(rate / 100.0)
 
                 # 违规详情
                 if results['zone_violations']:
