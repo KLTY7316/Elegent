@@ -7,7 +7,6 @@ import numpy as np
 from PIL import Image
 import sys
 from pathlib import Path
-from utils.history_manager import save_violation_screenshot
 
 # 确保可以导入 utils
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -16,8 +15,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="安全帽检测",
-    page_icon="⛑️",
+    page_title="图片检测 - 安全帽检测系统",
+    page_icon="📸",
     layout="wide",
 )
 
@@ -72,11 +71,6 @@ if uploaded_file is not None:
             detections = detect_fn(image)
             stats = get_stats_fn(detections)
 
-            # 违规截图自动保存
-            saved = save_violation_screenshot(annotated, detections, source="图片检测")
-            if saved:
-                st.toast(f"🚨 违规截图已保存 ({saved['violation_count']}处违规)", icon="📸")
-
         # 在图片上画检测框
         annotated = image.copy()
         for det in detections:
@@ -106,27 +100,22 @@ if uploaded_file is not None:
             st.image(annotated_rgb, width='stretch')
 
         with col_stats:
-            st.markdown(f"""
-            <div class="glass-card" style="padding:20px;">
-                <h4 style="color:#93c5fd; margin:0 0 16px 0;">📊 检测统计</h4>
-            """, unsafe_allow_html=True)
+            st.markdown("### 📊 检测统计")
+            # 统计卡片
             st.metric("检测总人数", stats["total_persons"])
-            safe_color = "metric-safe" if stats["helmet_count"] > 0 else ""
-            st.markdown(f'<div class="{safe_color}">', unsafe_allow_html=True)
-            st.metric("✅ 佩戴安全帽", stats["helmet_count"])
-            st.markdown('</div>', unsafe_allow_html=True)
-            vio_color = "metric-violation" if stats["no_helmet_count"] > 0 else ""
-            st.markdown(f'<div class="{vio_color}">', unsafe_allow_html=True)
-            st.metric("⚠️ 未佩戴", stats["no_helmet_count"])
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.metric("✅ 佩戴安全帽", stats["helmet_count"], delta=None)
+            st.metric("⚠️ 未佩戴", stats["no_helmet_count"],
+                      delta_color="inverse" if stats["no_helmet_count"] > 0 else "normal")
+
+            # 违规率进度条
             st.markdown("#### 违规率")
             violation_rate = stats["violation_rate"]
             bar_color = "🟢" if violation_rate < 10 else "🟡" if violation_rate < 20 else "🔴"
-            text_cls = "text-safe" if violation_rate < 10 else "text-warning" if violation_rate < 20 else "text-violation"
             st.progress(violation_rate / 100.0)
-            st.markdown(f'<p class="{text_cls}" style="font-weight:700;">**{bar_color} {violation_rate}%**</p>', unsafe_allow_html=True)
+            st.markdown(f"**{bar_color} {violation_rate}%**")
+
+            # 平均置信度
             st.metric("平均置信度", f"{stats['avg_confidence']:.1%}")
-            st.markdown('</div>', unsafe_allow_html=True)
 
         # 详细检测列表
         with st.expander("📋 检测详情", expanded=False):

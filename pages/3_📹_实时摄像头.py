@@ -7,7 +7,6 @@ import numpy as np
 import time
 import sys
 from pathlib import Path
-from utils.history_manager import save_violation_screenshot
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -25,8 +24,8 @@ detect_fn, get_stats_fn = load_detector()
 # 页面配置
 # ============================================================
 st.set_page_config(
-    page_title="安全帽检测",
-    page_icon="⛑️",
+    page_title="实时摄像头 - 安全帽检测系统",
+    page_icon="📹",
     layout="wide",
 )
 
@@ -113,10 +112,6 @@ if st.session_state.camera_running:
                 detections = detect_fn(frame, conf_threshold=conf_threshold)
                 stats = get_stats_fn(detections)
 
-                    # 违规截图自动保存（每5秒一次限制频率）
-                    if stats["no_helmet_count"] > 0 and frame_count % 30 == 0:
-                        save_violation_screenshot(frame, detections, source="摄像头检测")
-
                 # 画检测框
                 for det in detections:
                     x1, y1, x2, y2 = [int(v) for v in det["bbox"]]
@@ -140,19 +135,15 @@ if st.session_state.camera_running:
 
                 # 更新统计
                 with stats_placeholder.container():
-                        col1, col2, col3, col4 = st.columns(4)
-                        with col1:
-                            st.metric("FPS", f"{fps_display:.1f}")
-                        with col2:
-                            st.markdown('<div class="metric-safe">', unsafe_allow_html=True)
-                            st.metric("佩戴安全帽", stats["helmet_count"])
-                            st.markdown('</div>', unsafe_allow_html=True)
-                        with col3:
-                            st.markdown('<div class="metric-violation">', unsafe_allow_html=True)
-                            st.metric("违规人数", stats["no_helmet_count"])
-                            st.markdown('</div>', unsafe_allow_html=True)
-                        with col4:
-                            st.metric("检测人数", stats["total_persons"])
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("FPS", f"{fps_display:.1f}")
+                    with col2:
+                        st.metric("检测人数", stats["total_persons"])
+                    with col3:
+                        st.metric("佩戴安全帽", stats["helmet_count"])
+                    with col4:
+                        st.metric("违规人数", stats["no_helmet_count"])
 
             time.sleep(0.01)
 
